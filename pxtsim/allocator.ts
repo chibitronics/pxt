@@ -282,30 +282,33 @@ namespace pxsim {
                     fnNms.forEach(fnNm => { if (this.opts.fnArgs[fnNm]) this.opts.fnArgs[fnNm].forEach((targetArg: string) => { callsitesTrackedArgsHash[targetArg] = 1 }); });
                     let callsitesTrackedArgs: string[] = Object.keys(callsitesTrackedArgsHash);
                     if (!(!!callsitesTrackedArgs && !!callsitesTrackedArgs.length)) {
-                        console.log(`error: parts failed to read pin(s) from callsite for: ${fnNms}`);
-                        return undefined;
-                    }
-                    callsitesTrackedArgs.forEach(fnArgsStr => {
-                        const fnArgsSplit = fnArgsStr.split(",");
-                        if (fnArgsSplit.length != fnAlloc.argumentRoles.length) {
-                            console.log(`error: parts mismatch between number of arguments at callsite (function name: ${fnNms}) vs number of argument roles in part definition (part: ${name}).`);
-                            return;
-                        }
-                        let instPins: PinTarget[] = [];
-                        let paramArgs: Map<string> = {};
-                        fnArgsSplit.forEach((arg, idx) => {
-                            let role = fnAlloc.argumentRoles[idx];
-                            if (role.partParameter !== undefined) {
-                                paramArgs[role.partParameter] = arg;
+                        // console.log(`error: parts failed to read pin(s) from callsite for: ${fnNms}`);
+                        console.log('chibitronics: ignore error on reading pins failure');
+                        partIRs.push(mkIR(def, name, [], {}));
+                        // return undefined;
+                    } else {
+                        callsitesTrackedArgs.forEach(fnArgsStr => {
+                            const fnArgsSplit = fnArgsStr.split(",");
+                            if (fnArgsSplit.length != fnAlloc.argumentRoles.length) {
+                                console.log(`error: parts mismatch between number of arguments at callsite (function name: ${fnNms}) vs number of argument roles in part definition (part: ${name}).`);
+                                return;
                             }
-                            if (role.pinInstantiationIdx !== undefined) {
-                                let instIdx = role.pinInstantiationIdx;
-                                let pin = readPin(arg);
-                                instPins[instIdx] = pin;
-                            }
+                            let instPins: PinTarget[] = [];
+                            let paramArgs: Map<string> = {};
+                            fnArgsSplit.forEach((arg, idx) => {
+                                let role = fnAlloc.argumentRoles[idx];
+                                if (role.partParameter !== undefined) {
+                                    paramArgs[role.partParameter] = arg;
+                                }
+                                if (role.pinInstantiationIdx !== undefined) {
+                                    let instIdx = role.pinInstantiationIdx;
+                                    let pin = readPin(arg);
+                                    instPins[instIdx] = pin;
+                                }
+                            });
+                            partIRs.push(mkIR(def, name, instPins, paramArgs));
                         });
-                        partIRs.push(mkIR(def, name, instPins, paramArgs));
-                    });
+                    }
                 }
             })
             return partIRs.filter(ir => !!ir);
@@ -316,7 +319,8 @@ namespace pxsim {
             let numPins = def.numberOfPins;
             U.assert(pinLocs.length === numPins, `Mismatch between "numberOfPins" and length of "visual.pinLocations" for "${name}"`);
             U.assert(pinDefs.length === numPins, `Mismatch between "numberOfPins" and length of "pinDefinitions" for "${name}"`);
-            U.assert(numPins > 0, `Part "${name}" has no pins`);
+            // U.assert(numPins > 0, `Part "${name}" has no pins`);
+            console.log('chibitronics: ignore assertion for no pins');
             let pins = pinLocs.map((loc, idx) => merge3({ idx: idx }, loc, pinDefs[idx]));
             let bbPins = pins.filter(p => p.orientation === "-Z");
             let hasBBPins = bbPins.length > 0;
